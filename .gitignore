@@ -1,0 +1,8 @@
+target/
+dbt_packages/
+logs/
+dbt-user.json
+2019-Oct.csv
+.user.yml
+profiles.yml
+.DS_Store

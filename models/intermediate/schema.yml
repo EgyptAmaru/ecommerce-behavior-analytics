@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: int_sessions
+    description: "Sessionized events with session IDs assigned based on a 30-minute gap threshold. One row per event per user session."
+    columns:
+      - name: session_id
+        description: "Cumulative session counter per user. Increments when gap between events exceeds 30 minutes."
+        tests:
+          - not_null
+      - name: user_id
+        description: "Unique identifier for the user."
+        tests:
+          - not_null
+
+  - name: int_funnel
+    description: "First occurrence of each funnel step per user. One row per user with timestamps for view, cart, and purchase events."
+    columns:
+      - name: user_id
+        description: "Unique identifier for the user."
+        tests:
+          - not_null
+      - name: view_time
+        description: "Timestamp of the user's first view event."
+        tests:
+          - not_null
+          
+  - name: int_cohorts
+    description: "One row per user with their cohort date — the day of their first event. Used by mart layer to assign users to cohorts and calculate retention."
+    columns:
+      - name: user_id
+        description: "Unique identifier for the user."
+        tests:
+          - not_null
+          - unique
+      - name: cohort_date
+        description: "Date of the user's first event, truncated to day."
+        tests:
+          - not_null

@@ -1,0 +1,11 @@
+ecommerce_events:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: your-gcp-project-name
+      dataset: ecommerce_events
+      keyfile: /path/to/your/service-account-key.json
+      threads: 4
+      timeout_seconds: 300

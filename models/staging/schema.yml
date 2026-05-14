@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_events
+    description: "Cleaned and selected columns from the raw events source table. One row per user action."
+    columns:
+      - name: user_id
+        description: "Unique identifier for the user."
+        tests:
+          - not_null
+      - name: event_time
+        description: "Timestamp of the user action."
+        tests:
+          - not_null
+      - name: event_type
+        description: "Type of event performed by the user."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['view', 'cart', 'purchase']
+
+
+              

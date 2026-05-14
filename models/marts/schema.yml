@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: mrt_retention
+    description: "Retention of users across 4 days. Each row represents the count distribution per cohort"
+    columns: 
+      - name: cohort
+        description: "The cohort day based on the users first event"
+        tests:
+          - not_null
+          - unique
+      - name: day_0_count
+        description: "The number of users who appeared in day 0"
+      - name: day_1_count
+        description: "The number of users who appeared in day 1"
+      - name: day_2_count
+        description: "The number of users who appeared in day 2"
+      - name: day_3_count
+        description: "The number of users who appeared in day 3"
+      - name: day_4_count
+        description: "The number of users who appeared in day 4"
+    
+  - name: mrt_conversion
+    description: "Funnel conversion rates in long format. One row per funnel transition (view to cart, cart to purchase)."
+    columns:
+      - name: from_step
+        description: "The funnel step the user is converting from."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['view', 'cart']
+      - name: to_step
+        description: "The funnel step the user is converting to."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['cart', 'purchase']
+      - name: conversion_rate
+        description: "The percentage of users who progressed from from_step to to_step."
+        tests:
+        - not_null
+
+

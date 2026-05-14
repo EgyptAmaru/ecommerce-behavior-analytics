@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: ecommerce
+    database: ecommerce-behavior-analytics
+    schema: raw
+    tables:
+      - name: events
