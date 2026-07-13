@@ -42,6 +42,32 @@
 **Date Truncation:** `cohort_date` was truncated in int layer, `event_time` is truncated in mrt layer prior to calculating the difference for the `days_since` column.
 **Multi-Sources:** To add `cohort_date`, 2 sources are referenced during the JOIN operation.
 
+## stg_products
+**Grain:** One row per `product_id`.
+**Column selection:** Retained `product_id`, `category_id`, `brand`. Excluded `category_code` — sparsely populated, mostly null.
+**Deduplication:** `QUALIFY ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY event_time DESC) = 1` — keeps the most recent row per product.
+**Filtering:** `WHERE product_id IS NOT NULL` — null product_ids excluded before deduplication.
+**Source:** `source('ecommerce', 'events')`
+
+## snap_products
+**Strategy:** `check` on `check_cols: [category_id]`. Detects changes by comparing current and prior values of `category_id`.
+**Unique key:** `product_id`.
+**Target schema:** `snapshots` (separate from the `ecommerce_events` model dataset).
+**Column handling:** `brand` is included in the snapshot but not in `check_cols` — changes to `brand` do not open a new record, making it effectively Type 1 (overwrite in place).
+**Hard deletes:** `invalidate_hard_deletes=True` — products that disappear from `stg_products` will have `dbt_valid_to` closed rather than left open.
+**Performance trade-off:** `check` strategy performs a full table scan on every run — 1.2 GiB on this dataset. Consider `timestamp` strategy if scan cost becomes prohibitive.
+**Baseline:** First run (2026-06-04) establishes the initial snapshot. History tracking begins from this point; no prior change history is captured.
+**Source:** `ref('stg_products')`
+
+## int_events_incremental
+**Materialization:** Incremental, `insert_overwrite` strategy.  
+**Partition:** `event_time`, data type `timestamp`, day granularity.  
+**Incremental filter:** On each run, replaces partitions where `event_time >= MAX(event_time) - 3 days` from `{{ this }}`. The lookback window is anchored to the latest timestamp already in the table, not wall-clock time, so backfills and delayed runs behave correctly.  
+**Why insert_overwrite:** `append` is not supported on the BigQuery dbt adapter (valid strategies: `merge`, `insert_overwrite`, `microbatch`). `insert_overwrite` is idempotent — reruns over the same window replace rather than duplicate partitions — and leverages BigQuery partition pruning to limit scan cost.  
+**Production caveat:** `event_time` is occurrence time (when the user action happened), not ingestion time. A dedicated `ingested_at` column would be preferable in production: late-arriving events with old `event_time` values would be captured by a lookback on `ingested_at` rather than requiring a wider `event_time` window.  
+**First run:** Full `CREATE TABLE` — 42.4M rows, 3.0 GiB processed. Incremental logic activates on subsequent runs.  
+**Source:** `ref('stg_events')`
+
 ## mrt_conversion
 **Grain:** One row per funnel transition (view→cart, cart→purchase).  
 **Format:** Long format — each row represents one transition with `from_step`, `to_step`, and `conversion_rate` columns. Wide format was rejected because long format is more extensible (adding a funnel step adds a row, not a column) and more compatible with BI tool consumption.   
@@ -50,3 +76,7 @@
 **NULLIF:** Applied to both denominators to prevent divide-by-zero errors when a funnel step has zero users.  
 **Source:** `ref('int_funnel')`  
 **Data tests:** `not_null` and `accepted_values` on `from_step` and `to_step`; `not_null` on `conversion_rate`.
+
+## Git
+**Remote:** https://github.com/EgyptAmaru/ecommerce-behavior-analytics  
+**Commit practice:** Commit after each build session with a meaningful message describing what was built.
