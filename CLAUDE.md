@@ -77,6 +77,15 @@
 **Source:** `ref('int_funnel')`  
 **Data tests:** `not_null` and `accepted_values` on `from_step` and `to_step`; `not_null` on `conversion_rate`.
 
+## Macros
+
+### first_event_time(event_type)
+**Location:** `macros/first_event_time.sql`  
+**Purpose:** Parameterizes the `MIN(CASE WHEN event_type = '...' THEN event_time END) AS {event_type}_time` pivot pattern into a single reusable call.  
+**Argument:** `event_type` — a string that becomes both the filter value in the CASE WHEN and the output column alias (e.g., `'view'` → `view_time`).  
+**Used in:** `int_funnel.sql` for all three funnel steps: `view`, `cart`, `purchase`.  
+**Why:** The pattern repeated three times in `int_funnel`, was sensitive to string literal typos (a misspelling silently produces all NULLs), and would require a new manually-written block for every additional funnel step.
+
 ## Git
 **Remote:** https://github.com/EgyptAmaru/ecommerce-behavior-analytics  
 **Commit practice:** Commit after each build session with a meaningful message describing what was built.
